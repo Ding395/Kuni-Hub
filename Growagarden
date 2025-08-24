@@ -1,0 +1,194 @@
+-- Wait 2 seconds before starting
+task.wait(2)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+
+-- ✅ Prevent duplicate loading screens
+if CoreGui:FindFirstChild("EggRandomizerLoading") then return end
+
+-- ✅ GUI setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EggRandomizerLoading"
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.DisplayOrder = 2147483647
+screenGui.Parent = CoreGui -- force into CoreGui so it's always on top
+
+-- ✅ Background
+local background = Instance.new("Frame")
+background.Size = UDim2.new(1, 0, 1, 0)
+background.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+background.BorderSizePixel = 0
+background.ZIndex = 10
+background.Parent = screenGui
+
+-- ✅ Animated gradient
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 160, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 200))
+}
+gradient.Rotation = 90
+gradient.Parent = background
+
+task.spawn(function()
+	while screenGui.Parent do
+		for i = 0, 360, 1 do
+			gradient.Rotation = i
+			task.wait(0.05)
+		end
+	end
+end)
+
+-- ✅ Title (Kuni-Hub)
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Position = UDim2.new(0, 0, 0.1, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Font = Enum.Font.FredokaOne
+title.Text = "Kuni-Hub"
+title.ZIndex = 20
+title.Parent = background
+
+-- ✅ Loading text
+local loadingText = Instance.new("TextLabel")
+loadingText.Size = UDim2.new(1, 0, 0.1, 0)
+loadingText.Position = UDim2.new(0, 0, 0.4, 0)
+loadingText.BackgroundTransparency = 1
+loadingText.TextColor3 = Color3.new(1, 1, 1)
+loadingText.TextScaled = true
+loadingText.Font = Enum.Font.Gotham
+loadingText.Text = "Loading..."
+loadingText.ZIndex = 20
+loadingText.Parent = background
+
+-- ✅ Loading bar background
+local barBackground = Instance.new("Frame")
+barBackground.Size = UDim2.new(0.6, 0, 0.04, 0)
+barBackground.Position = UDim2.new(0.2, 0, 0.52, 0)
+barBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+barBackground.BorderSizePixel = 0
+barBackground.ZIndex = 20
+barBackground.Parent = background
+Instance.new("UICorner", barBackground).CornerRadius = UDim.new(0, 8)
+
+-- ✅ Fill bar
+local barFill = Instance.new("Frame")
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+barFill.BorderSizePixel = 0
+barFill.ClipsDescendants = true
+barFill.ZIndex = 21
+barFill.Parent = barBackground
+Instance.new("UICorner", barFill).CornerRadius = UDim.new(0, 8)
+
+-- ✅ % Label
+local percentLabel = Instance.new("TextLabel")
+percentLabel.Size = UDim2.new(1, 0, 0.05, 0)
+percentLabel.Position = UDim2.new(0, 0, 0.58, 0)
+percentLabel.BackgroundTransparency = 1
+percentLabel.TextColor3 = Color3.new(1, 1, 1)
+percentLabel.TextScaled = true
+percentLabel.Font = Enum.Font.Gotham
+percentLabel.Text = "0%"
+percentLabel.ZIndex = 20
+percentLabel.Parent = background
+
+-- ✅ Fish (cartoony emoji)
+local fishSymbols = {"🐠", "🐟", "🐡"}
+for i = 1, 10 do
+	local fish = Instance.new("TextLabel")
+	fish.Text = fishSymbols[math.random(1, #fishSymbols)]
+	fish.TextScaled = true
+	fish.Font = Enum.Font.FredokaOne
+	fish.Size = UDim2.new(0, 40, 0, 40)
+	fish.BackgroundTransparency = 1
+	fish.TextColor3 = Color3.fromRGB(math.random(100,255), math.random(100,255), math.random(100,255))
+	fish.Position = UDim2.new(math.random(), 0, math.random(), 0)
+	fish.ZIndex = 20
+	fish.Parent = background
+
+	task.spawn(function()
+		while fish.Parent do
+			fish:TweenPosition(
+				UDim2.new(math.random(), 0, math.random(), 0),
+				Enum.EasingDirection.InOut,
+				Enum.EasingStyle.Sine,
+				math.random(4, 8),
+				true
+			)
+			task.wait(math.random(3, 5))
+		end
+	end)
+end
+
+-- ✅ Animate "Loading..." dots
+task.spawn(function()
+	local dots = ""
+	while screenGui.Parent do
+		dots = dots .. "."
+		if #dots > 3 then dots = "" end
+		loadingText.Text = "Loading" .. dots
+		task.wait(0.5)
+	end
+end)
+
+-- ✅ Keep loading screen above EVERYTHING
+RunService.RenderStepped:Connect(function()
+	if screenGui and screenGui.Parent then
+		if screenGui.Parent ~= CoreGui then
+			screenGui.Parent = CoreGui
+		end
+		screenGui.DisplayOrder = 2147483647
+		screenGui.Parent = CoreGui -- forces it to be drawn last
+	end
+end)
+
+-- ✅ Allow Roblox topbar, but block game’s fake symbols
+pcall(function()
+	StarterGui:SetCore("TopbarEnabled", true)
+end)
+
+CoreGui.ChildAdded:Connect(function(child)
+	if child:IsA("ScreenGui") then
+		if string.find(child.Name:lower(), "backpack")
+		or string.find(child.Name:lower(), "menu") then
+			child.Enabled = false
+			print("🚫 Blocked custom symbol:", child.Name)
+		end
+	end
+end)
+
+-- ✅ Load main script (new one from Kuni-Script repo)
+task.spawn(function()
+	local success, result = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Ding395/Kuni-Script/main/Growagarden"))()
+	end)
+	if not success then
+		warn("❌ Failed to load main script:", result)
+	else
+		print("✅ Main script loaded (Kuni-Script).")
+	end
+end)
+
+-- ✅ Animate loading bar for 60s
+local totalTime = 60
+local startTime = tick()
+
+while tick() - startTime < totalTime do
+	local progress = (tick() - startTime) / totalTime
+	barFill.Size = UDim2.new(progress, 0, 1, 0)
+	percentLabel.Text = string.format("%d%%", math.floor(progress * 100))
+	task.wait(0.05)
+end
+
+-- ✅ Remove loading screen
+screenGui:Destroy()
